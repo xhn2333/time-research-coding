@@ -16,16 +16,20 @@ namespace beast = boost::beast;
 namespace http = beast::http;
 namespace ip = boost::asio::ip;
 namespace ssl = boost::asio::ssl;
+using boost::asio::ip::tcp;
 
 class RestApiHandler : public std::enable_shared_from_this<RestApiHandler> {
   public:
-	RestApiHandler(asio::io_context& ioc, ssl::context& ctx)
-		: timer_(ioc),
+	RestApiHandler(asio::io_context& ioc)
+		: io_context_(ioc),
+		  timer_(ioc),
 		  resolver_(ioc),
-		  stream_(ioc, ctx),
-		  retry_timer_(ioc),
-		  polling_interval_(std::chrono::seconds(5)),
-		  ioc_(ioc) {}
+		  ssl_context_(boost::asio::ssl::context::sslv23) {
+		this->polling_interval_.store(std::chrono::seconds(5));
+		this->ssl_context_.set_default_verify_paths();
+
+		this->socket_ = std::make_shared<ssl::stream<tcp::socket>>(ioc, this->ssl_context_);
+	}
 
 	void setEndpoint(const std::string& host,
 					 const std::string& port,
@@ -33,124 +37,52 @@ class RestApiHandler : public std::enable_shared_from_this<RestApiHandler> {
 		this->host_ = host;
 		this->port_ = port;
 		this->endpoint_ = endpoint;
+
+		this->req_ = http::request<http::string_body>{http::verb::get, "/fapi/v1/depth?symbol=BTCUSDT&limit=5", 11};
+		this->req_.set(http::field::host, "fapi.binance.com");
+		this->req_.set(http::field::accept, "*/*");
+		this->req_.set(http::field::connection, "close");
 	}
 
 	void setPollingInterval(std::chrono::seconds new_interval) {
 		polling_interval_.store(new_interval);
 	}
 
-	void startPolling() {
-		schedulePolling();
-	}
+	void run();
 
   private:
-	void schedulePolling() {
-		timer_.expires_after(polling_interval_.load());
-		timer_.async_wait([this](boost::system::error_code ec) {
-			if (!ec) {
-				req_.version(11);
-				req_.method(http::verb::get);
-				req_.set(http::field::host, host_);
-				req_.target(endpoint_);
-				req_.set(http::field::user_agent, "binancebeast");
-				// req_.insert("X-MBX-APIKEY", m_apiKeys.api);
+	void on_resolve(const boost::system::error_code& error, tcp::resolver::results_type results, std::shared_ptr<boost::asio::ssl::stream<tcp::socket>> socket);
 
-				resolver_.async_resolve(
-					host_,
-					port_,
-					beast::bind_front_handler(&RestApiHandler::on_resolve, shared_from_this()));
-				schedulePolling();
-			} else {
-				std::cerr << "Polling timer error: " << ec.message() << std::endl;
-			}
-		});
-	}
+	void on_connect(const boost::system::error_code& error,
+					std::shared_ptr<ssl::stream<tcp::socket>> socket);
 
-	void on_resolve(beast::error_code ec, ip::tcp::resolver::results_type results) {
-		if (ec) {
-			std::cerr << "Resolve error: " << ec.message() << std::endl;
-			return;
-		}
+	void on_handshake(const boost::system::error_code& error,
+					  std::shared_ptr<ssl::stream<tcp::socket>> socket);
 
-		stream_.set_verify_mode(ssl::verify_peer);
-		stream_.set_verify_callback(ssl::rfc2818_verification(host_));
+	void on_write(const boost::system::error_code& error,
+				  std::shared_ptr<ssl::stream<tcp::socket>> socket);
 
-		beast::get_lowest_layer(stream_).expires_after(std::chrono::seconds(10));  // TODO is this ok
-		beast::get_lowest_layer(stream_).async_connect(
-			results,
-			beast::bind_front_handler(&RestApiHandler::on_connect, shared_from_this()));
-	}
+	void on_read(const boost::system::error_code& error,
+				 std::size_t bytes_transferred,
+				 std::shared_ptr<ssl::stream<tcp::socket>> socket,
+				 std::shared_ptr<boost::asio::streambuf> response);
 
-	void on_connect(beast::error_code ec, ip::tcp::resolver::results_type::endpoint_type) {
-		if (ec) {
-			std::cerr << "Connect error: " << ec.message() << std::endl;
-			return;
-		}
-		beast::get_lowest_layer(stream_).expires_after(std::chrono::seconds(5));
-
-		stream_.async_handshake(
-			ssl::stream_base::client,
-			beast::bind_front_handler(&RestApiHandler::on_handshake, shared_from_this()));
-	}
-
-	void on_handshake(beast::error_code ec) {
-		// if (ec) {
-		// 	std::cerr << "Handshake error: " << ec.message() << std::endl;
-		// 	return;
-		// } else {
-		// 	beast::get_lowest_layer(stream_).expires_after(std::chrono::seconds(5));
-		// 	beast::http::async_write(
-		// 		stream_,
-		// 		req_,
-		// 		beast::bind_front_handler(&RestApiHandler::on_write, shared_from_this()));
-		// }
-	}
-
-	void on_write(beast::error_code ec, std::size_t /*bytes_transferred*/) {
-		if (ec) {
-			std::cerr << "Write error: " << ec.message() << std::endl;
-			return;
-		} else {
-			beast::http::request<beast::http::string_body> req{beast::http::verb::get, endpoint_, 11};
-			req.set(beast::http::field::host, host_);
-			req.set(beast::http::field::user_agent, BOOST_BEAST_VERSION_STRING);
-		}
-	}
-
-	void on_read(beast::error_code ec, std::size_t /*bytes_transferred*/) {
-		if (ec) {
-			std::cerr << "Read error: " << ec.message() << std::endl;
-			return;
-		}
-	}
-
-	void on_shutdown(beast::error_code ec) {
-		if (ec == asio::error::eof) {
-			// Rationale:
-			// http://stackoverflow.com/questions/25587403/boost-asio-ssl-async-shutdown-always-finishes-with-an-error
-			ec = {};
-		}
-
-		if (ec)
-			return;
-
-		// If we get here then the connection is closed gracefully
-	}
-
-	asio::io_context& ioc_;
-	asio::steady_timer timer_;
-	ip::tcp::resolver resolver_;
-	ssl::stream<beast::tcp_stream> stream_;	 // SSL stream for secure communication
-	asio::steady_timer retry_timer_;
-	std::atomic<std::chrono::seconds> polling_interval_;
-
-	http::request<http::string_body> req_;
-	http::response<http::string_body> res_;
+  private:
 	std::string host_;
 	std::string port_;
 	std::string endpoint_;
 
-	boost::beast::flat_buffer buffer_;
+	// asio::io_context& ioc_;
+	asio::io_context& io_context_;
+	asio::steady_timer timer_;
+	std::atomic<std::chrono::seconds> polling_interval_;
+
+	boost::asio::ssl::context ssl_context_;
+	ip::tcp::resolver resolver_;
+	std::shared_ptr<ssl::stream<tcp::socket>> socket_;
+
+	http::request<http::string_body> req_;
+	boost::asio::streambuf response_;
 };
 
 #endif	// RESTAPI_H
