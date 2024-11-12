@@ -10,4 +10,8 @@ using std::string;
 namespace asio = boost::asio;
 namespace beast = boost::beast;
 
+struct Msg{
+	
+};
+
 #endif	// COMMON_H

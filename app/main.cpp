@@ -1,7 +1,6 @@
-#include "demo.h"
+#include <iostream>
 
-int main(){
-	Demo demo;
-	demo.run();
+int main() {
+	std::cout << "Hello, World!" << std::endl;
 	return 0;
 }

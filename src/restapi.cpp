@@ -39,6 +39,19 @@ void RestApiHandler::run() {
 	});
 }
 
+	void RestApiHandler::setEndpoint(const std::string& host,
+					 const std::string& port,
+					 const std::string& endpoint) {
+		this->host_ = host;
+		this->port_ = port;
+		this->endpoint_ = endpoint;
+
+		this->req_ = http::request<http::string_body>{http::verb::get, "/fapi/v1/depth?symbol=BTCUSDT&limit=5", 11};
+		this->req_.set(http::field::host, "fapi.binance.com");
+		this->req_.set(http::field::accept, "*/*");
+		this->req_.set(http::field::connection, "close");
+	}
+
 void RestApiHandler::on_resolve(const boost::system::error_code& error,
 								tcp::resolver::results_type results,
 								std::shared_ptr<boost::asio::ssl::stream<tcp::socket>> socket) {

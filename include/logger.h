@@ -8,73 +8,64 @@
 #include <string>
 #include <unordered_map>
 
-class Logger
-{
-public:
-    static void init(const std::string& defaultLogFile = "logs/default_log.txt")
-    {
-        if (defaultLogger == nullptr)
-        {
-            auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
-            console_sink->set_level(spdlog::level::trace);
+class Logger {
+  public:
+	static void init(const std::string& defaultLogFile = "logs/default_log.txt") {
+		if (defaultLogger == nullptr) {
+			auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+			console_sink->set_level(spdlog::level::trace);
 
-            auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(defaultLogFile, true);
-            file_sink->set_level(spdlog::level::trace);
+			auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(defaultLogFile, true);
+			file_sink->set_level(spdlog::level::trace);
 
-            defaultLogger = std::make_shared<spdlog::logger>("default_logger", spdlog::sinks_init_list{console_sink, file_sink});
-            spdlog::register_logger(defaultLogger);
-            spdlog::set_default_logger(defaultLogger);
+			defaultLogger = std::make_shared<spdlog::logger>("default_logger", spdlog::sinks_init_list{console_sink, file_sink});
+			spdlog::register_logger(defaultLogger);
+			spdlog::set_default_logger(defaultLogger);
 
-            defaultLogger->set_pattern("[%Y-%m-%d %H:%M:%S] [%^%l%$] %v");
-            defaultLogger->set_level(spdlog::level::trace);
+			defaultLogger->set_pattern("[%Y-%m-%d %H:%M:%S] [%^%l%$] %v");
+			defaultLogger->set_level(spdlog::level::trace);
 
-            spdlog::info("Default logger initialized with file: {}", defaultLogFile);
-        }
-    }
+			spdlog::info("Default logger initialized with file: {}", defaultLogFile);
+		}
+	}
 
-    static std::shared_ptr<spdlog::logger> getLogger(const std::string& topic)
-    {
-        if (loggers.find(topic) == loggers.end())
-        {
-            createTopicLogger(topic);
-        }
-        return loggers[topic];
-    }
+	static std::shared_ptr<spdlog::logger> getLogger(const std::string& topic) {
+		if (loggers.find(topic) == loggers.end()) {
+			createTopicLogger(topic);
+		}
+		return loggers[topic];
+	}
 
-    static void setLevel(spdlog::level::level_enum level)
-    {
-        if (defaultLogger)
-        {
-            defaultLogger->set_level(level);
-        }
-        for (auto& [topic, logger] : loggers)
-        {
-            logger->set_level(level);
-        }
-    }
+	static void setLevel(spdlog::level::level_enum level) {
+		if (defaultLogger) {
+			defaultLogger->set_level(level);
+		}
+		for (auto& [topic, logger] : loggers) {
+			logger->set_level(level);
+		}
+	}
 
-private:
-    Logger() = default;
-    ~Logger() = default;
+  private:
+	Logger() = default;
+	~Logger() = default;
 
-    static void createTopicLogger(const std::string& topic)
-    {
-        std::string fileName = "logs/" + topic + "_log.txt";
-        auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(fileName, true);
-        file_sink->set_level(spdlog::level::trace);
+	static void createTopicLogger(const std::string& topic) {
+		std::string fileName = "logs/" + topic + "_log.txt";
+		auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(fileName, true);
+		file_sink->set_level(spdlog::level::trace);
 
-        auto logger = std::make_shared<spdlog::logger>(topic, file_sink);
-        logger->set_pattern("[%Y-%m-%d %H:%M:%S] [%^%l%$] %v");
-        logger->set_level(spdlog::level::trace);
+		auto logger = std::make_shared<spdlog::logger>(topic, file_sink);
+		logger->set_pattern("[%Y-%m-%d %H:%M:%S] [%^%l%$] %v");
+		logger->set_level(spdlog::level::trace);
 
-        spdlog::register_logger(logger);
-        loggers[topic] = logger;
+		spdlog::register_logger(logger);
+		loggers[topic] = logger;
 
-        spdlog::info("Logger for topic '{}' initialized with file: {}", topic, fileName);
-    }
+		spdlog::info("Logger for topic '{}' initialized with file: {}", topic, fileName);
+	}
 
-    static std::shared_ptr<spdlog::logger> defaultLogger;
-    static std::unordered_map<std::string, std::shared_ptr<spdlog::logger>> loggers;
+	static std::shared_ptr<spdlog::logger> defaultLogger;
+	static std::unordered_map<std::string, std::shared_ptr<spdlog::logger>> loggers;
 };
 
 std::shared_ptr<spdlog::logger> Logger::defaultLogger = nullptr;
@@ -94,4 +85,4 @@ std::unordered_map<std::string, std::shared_ptr<spdlog::logger>> Logger::loggers
 #define LOG_ERROR(...) Logger::getLogger("default")->error(__VA_ARGS__)
 #define LOG_CRITICAL(...) Logger::getLogger("default")->critical(__VA_ARGS__)
 
-#endif  // LOGGER_H
+#endif	// LOGGER_H

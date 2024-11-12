@@ -1,30 +1,12 @@
 #ifndef WEBOCKET_H
 #define WEBOCKET_H
 
-#include <openssl/ssl.h>
-#include <boost/asio.hpp>
-#include <boost/asio/ssl.hpp>
-#include <boost/asio/strand.hpp>
-#include <boost/beast.hpp>
-#include <boost/beast/websocket.hpp>
-#include <boost/beast/websocket/ssl.hpp>
-#include <boost/lockfree/queue.hpp>
-#include <iostream>
-#include <memory>
-#include <string>
-#include <thread>
+#include "connection.h"
 
-namespace asio = boost::asio;
-namespace beast = boost::beast;
-namespace http = beast::http;
-namespace ip = boost::asio::ip;
-namespace ssl = boost::asio::ssl;
-using boost::asio::ip::tcp;
-
-class WebSocketHandler : public std::enable_shared_from_this<WebSocketHandler> {
+class WebSocketHandler : public std::enable_shared_from_this<WebSocketHandler>, public Handler {
   public:
 	WebSocketHandler(asio::io_context& ioc)
-		: io_context_(ioc),
+		: Handler(ioc),
 		  timer_(ioc),
 		  resolver_(ioc),
 		  ssl_context_(ssl::context::sslv23),
@@ -35,13 +17,8 @@ class WebSocketHandler : public std::enable_shared_from_this<WebSocketHandler> {
 
 	void setEndpoint(const std::string& host,
 					 const std::string& port,
-					 const std::string& endpoint) {
-		this->host_ = host;
-		this->port_ = port;
-		this->endpoint_ = endpoint;
-	}
-
-	void run();
+					 const std::string& endpoint) override;
+	void run() override;
 
 	void close();
 
@@ -54,12 +31,12 @@ class WebSocketHandler : public std::enable_shared_from_this<WebSocketHandler> {
 	void do_read();
 	void on_read(const boost::system::error_code& ec, std::size_t bytes_transferred);
 
-	asio::io_context& io_context_;
-	boost::asio::ssl::context ssl_context_;
-
 	asio::steady_timer timer_;
+
+	boost::asio::ssl::context ssl_context_;
 	tcp::resolver resolver_;
 	beast::websocket::stream<ssl::stream<tcp::socket> > ws_;
+
 	beast::flat_buffer buffer;
 	std::string host_;
 	std::string port_;

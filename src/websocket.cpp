@@ -17,6 +17,14 @@ void WebSocketHandler::run() {
 	});
 }
 
+void WebSocketHandler::setEndpoint(const std::string& host,
+				 const std::string& port,
+				 const std::string& endpoint) {
+	this->host_ = host;
+	this->port_ = port;
+	this->endpoint_ = endpoint;
+}
+
 void WebSocketHandler::close() {
 	boost::system::error_code ec;
 	ws_.close(beast::websocket::close_code::normal, ec);

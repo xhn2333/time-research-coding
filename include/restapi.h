@@ -1,28 +1,12 @@
 #ifndef RESTAPI_H
 #define RESTAPI_H
 
-#include <openssl/ssl.h>
-#include <boost/asio.hpp>
-#include <boost/asio/ssl.hpp>
-#include <boost/beast.hpp>
-#include <boost/beast/ssl.hpp>
-#include <boost/lockfree/queue.hpp>
-#include <chrono>
-#include <iostream>
-#include <memory>
-#include <thread>
+#include "connection.h"
 
-namespace asio = boost::asio;
-namespace beast = boost::beast;
-namespace http = beast::http;
-namespace ip = boost::asio::ip;
-namespace ssl = boost::asio::ssl;
-using boost::asio::ip::tcp;
-
-class RestApiHandler : public std::enable_shared_from_this<RestApiHandler> {
+class RestApiHandler : public std::enable_shared_from_this<RestApiHandler>, Handler {
   public:
 	RestApiHandler(asio::io_context& ioc)
-		: io_context_(ioc),
+		: Handler(ioc),
 		  timer_(ioc),
 		  resolver_(ioc),
 		  ssl_context_(boost::asio::ssl::context::sslv23) {
@@ -33,22 +17,13 @@ class RestApiHandler : public std::enable_shared_from_this<RestApiHandler> {
 
 	void setEndpoint(const std::string& host,
 					 const std::string& port,
-					 const std::string& endpoint) {
-		this->host_ = host;
-		this->port_ = port;
-		this->endpoint_ = endpoint;
-
-		this->req_ = http::request<http::string_body>{http::verb::get, "/fapi/v1/depth?symbol=BTCUSDT&limit=5", 11};
-		this->req_.set(http::field::host, "fapi.binance.com");
-		this->req_.set(http::field::accept, "*/*");
-		this->req_.set(http::field::connection, "close");
-	}
+					 const std::string& endpoint) override;
 
 	void setPollingInterval(std::chrono::seconds new_interval) {
 		polling_interval_.store(new_interval);
 	}
 
-	void run();
+	void run() override;
 
   private:
 	void on_resolve(const boost::system::error_code& error,
@@ -70,8 +45,6 @@ class RestApiHandler : public std::enable_shared_from_this<RestApiHandler> {
 	std::string port_;
 	std::string endpoint_;
 
-	// asio::io_context& ioc_;
-	asio::io_context& io_context_;
 	asio::steady_timer timer_;
 	std::atomic<std::chrono::seconds> polling_interval_;
 
