@@ -5,6 +5,7 @@
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
 #include <boost/beast.hpp>
+#include <boost/beast/ssl.hpp>
 #include <boost/lockfree/queue.hpp>
 #include <chrono>
 #include <iostream>
@@ -27,7 +28,6 @@ class RestApiHandler : public std::enable_shared_from_this<RestApiHandler> {
 		  ssl_context_(boost::asio::ssl::context::sslv23) {
 		this->polling_interval_.store(std::chrono::seconds(5));
 		this->ssl_context_.set_default_verify_paths();
-
 		this->socket_ = std::make_shared<ssl::stream<tcp::socket>>(ioc, this->ssl_context_);
 	}
 
@@ -51,17 +51,15 @@ class RestApiHandler : public std::enable_shared_from_this<RestApiHandler> {
 	void run();
 
   private:
-	void on_resolve(const boost::system::error_code& error, tcp::resolver::results_type results, std::shared_ptr<boost::asio::ssl::stream<tcp::socket>> socket);
-
+	void on_resolve(const boost::system::error_code& error,
+					tcp::resolver::results_type results,
+					std::shared_ptr<boost::asio::ssl::stream<tcp::socket>> socket);
 	void on_connect(const boost::system::error_code& error,
 					std::shared_ptr<ssl::stream<tcp::socket>> socket);
-
 	void on_handshake(const boost::system::error_code& error,
 					  std::shared_ptr<ssl::stream<tcp::socket>> socket);
-
 	void on_write(const boost::system::error_code& error,
 				  std::shared_ptr<ssl::stream<tcp::socket>> socket);
-
 	void on_read(const boost::system::error_code& error,
 				 std::size_t bytes_transferred,
 				 std::shared_ptr<ssl::stream<tcp::socket>> socket,

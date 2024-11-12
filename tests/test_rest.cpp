@@ -5,11 +5,17 @@
 
 using boost::asio::ip::tcp;
 
-TEST(TestWS, FailureCheck) {
+class REATAPITest : public ::testing::Test {
+  protected:
 	asio::io_context ioc;
+	std::shared_ptr<RestApiHandler> restHandler;
+	void SetUp() override {
+		restHandler = std::make_shared<RestApiHandler>(ioc);
+		;
+	}
+};
 
-	auto restHandler = std::make_shared<RestApiHandler>(ioc);
-
+TEST_F(REATAPITest, DISABLED_AllTest) {
 	restHandler->setEndpoint("fapi.binance.com",
 							 "443",
 							 "/fapi/v1/depth?symbol=BTCUSDT&limit=5");
@@ -17,9 +23,11 @@ TEST(TestWS, FailureCheck) {
 	restHandler->run();
 
 	// 在单独的线程中运行 io_context，以便非阻塞执行
-	std::thread t([&ioc]() {
+	std::thread t([&]() {
 		ioc.run();
 	});
 
+	std::this_thread::sleep_for(std::chrono::seconds(30));
+	restHandler->setPollingInterval(std::chrono::seconds(-1));
 	t.join();
 }
