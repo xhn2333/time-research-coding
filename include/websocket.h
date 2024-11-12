@@ -3,10 +3,10 @@
 
 #include "connection.h"
 
-class WebSocketHandler : public std::enable_shared_from_this<WebSocketHandler>, public Handler {
+class WebSocketHandler : public std::enable_shared_from_this<WebSocketHandler>, public ConnectionHandler {
   public:
 	WebSocketHandler(asio::io_context& ioc)
-		: Handler(ioc),
+		: ConnectionHandler(ioc),
 		  timer_(ioc),
 		  resolver_(ioc),
 		  ssl_context_(ssl::context::sslv23),
@@ -33,8 +33,8 @@ class WebSocketHandler : public std::enable_shared_from_this<WebSocketHandler>, 
 
 	asio::steady_timer timer_;
 
-	boost::asio::ssl::context ssl_context_;
 	tcp::resolver resolver_;
+	boost::asio::ssl::context ssl_context_;
 	beast::websocket::stream<ssl::stream<tcp::socket> > ws_;
 
 	beast::flat_buffer buffer;

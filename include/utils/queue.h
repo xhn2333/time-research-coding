@@ -36,6 +36,12 @@ public:
 		return true;
 	}
 
+	size_t size() const {
+		size_t head = head_.load(std::memory_order_relaxed);
+		size_t tail = tail_.load(std::memory_order_relaxed);
+		return (tail - head) & (capacity_ - 1);
+	}
+
 private:
 	std::vector<T> buffer_;
 	const size_t capacity_;
