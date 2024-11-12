@@ -3,10 +3,25 @@
 
 #include "connection.h"
 
-class RestApiHandler : public std::enable_shared_from_this<RestApiHandler>, Handler {
+class RestApiHandler : public std::enable_shared_from_this<RestApiHandler>, public ConnectionHandler {
+   private:
+	std::string host_;
+	std::string port_;
+	std::string endpoint_;
+
+	asio::steady_timer timer_;
+	std::atomic<std::chrono::seconds> polling_interval_;
+
+	ip::tcp::resolver resolver_;
+	boost::asio::ssl::context ssl_context_;
+	std::shared_ptr<ssl::stream<tcp::socket>> socket_;
+
+	http::request<http::string_body> req_;
+	boost::asio::streambuf response_;
+  
   public:
 	RestApiHandler(asio::io_context& ioc)
-		: Handler(ioc),
+		: ConnectionHandler(ioc),
 		  timer_(ioc),
 		  resolver_(ioc),
 		  ssl_context_(boost::asio::ssl::context::sslv23) {
@@ -40,20 +55,7 @@ class RestApiHandler : public std::enable_shared_from_this<RestApiHandler>, Hand
 				 std::shared_ptr<ssl::stream<tcp::socket>> socket,
 				 std::shared_ptr<boost::asio::streambuf> response);
 
-  private:
-	std::string host_;
-	std::string port_;
-	std::string endpoint_;
-
-	asio::steady_timer timer_;
-	std::atomic<std::chrono::seconds> polling_interval_;
-
-	boost::asio::ssl::context ssl_context_;
-	ip::tcp::resolver resolver_;
-	std::shared_ptr<ssl::stream<tcp::socket>> socket_;
-
-	http::request<http::string_body> req_;
-	boost::asio::streambuf response_;
+ 
 };
 
 #endif	// RESTAPI_H

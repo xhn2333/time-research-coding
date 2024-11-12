@@ -15,7 +15,7 @@ class REATAPITest : public ::testing::Test {
 	}
 };
 
-TEST_F(REATAPITest, DISABLED_AllTest) {
+TEST_F(REATAPITest, TestREST) {
 	restHandler->setEndpoint("fapi.binance.com",
 							 "443",
 							 "/fapi/v1/depth?symbol=BTCUSDT&limit=5");
@@ -28,6 +28,9 @@ TEST_F(REATAPITest, DISABLED_AllTest) {
 	});
 
 	std::this_thread::sleep_for(std::chrono::seconds(30));
-	restHandler->setPollingInterval(std::chrono::seconds(-1));
+	ioc.stop();
+	// restHandler->setPollingInterval(std::chrono::seconds(-1));
 	t.join();
+
+	SUCCEED();
 }
