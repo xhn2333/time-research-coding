@@ -11,6 +11,7 @@ set_target_properties(${TARGET_LIB} PROPERTIES
 target_link_libraries(${TARGET_LIB} PRIVATE
 	spdlog::spdlog
 	OpenSSL::SSL OpenSSL::Crypto
+	jsoncpp
 )
 
 
