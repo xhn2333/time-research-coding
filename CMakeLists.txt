@@ -5,6 +5,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(TARGET_LIB tr)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -fPIC -Issl -Wall -Wextra -O2")
 
 find_package(Boost 1.74 REQUIRED COMPONENTS system filesystem)
 find_package(OpenSSL REQUIRED)

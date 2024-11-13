@@ -2,24 +2,19 @@
 
 void WebSocketHandler::run() {
 	// Resolve the domain name into an IP address.
-	timer_.expires_after(std::chrono::seconds(5));
-	timer_.async_wait([this](boost::system::error_code ec) {
-		if (ec) {
-			std::cerr << "Timer error: " << ec.message() << std::endl;
-			run();
-		} else {
+	asio::post(
+		io_context_, [this]() {
 			this->ssl_context_.set_default_verify_paths();
 			this->resolver_.async_resolve(
 				host_,
 				port_,
 				beast::bind_front_handler(&WebSocketHandler::on_resolve, shared_from_this()));
-		}
-	});
+		});
 }
 
 void WebSocketHandler::setEndpoint(const std::string& host,
-				 const std::string& port,
-				 const std::string& endpoint) {
+								   const std::string& port,
+								   const std::string& endpoint) {
 	this->host_ = host;
 	this->port_ = port;
 	this->endpoint_ = endpoint;
@@ -65,10 +60,10 @@ void WebSocketHandler::on_ssl_handshake(const boost::system::error_code& ec) {
 		std::cerr << "SSL Handshake error: " << ec.message() << std::endl;
 		return;
 	}
-	ssl_context_.set_verify_mode(ssl::verify_peer);
-	ssl_context_.set_default_verify_paths();
+	ssl_context_.set_verify_mode(ssl::verify_client_once);
+	// ssl_context_.set_default_verify_paths();
 	tcp::socket& m_socket = ws_.next_layer().next_layer();
-	m_socket.set_option(boost::asio::ip::tcp::no_delay(true));
+	// m_socket.set_option(boost::asio::ip::tcp::no_delay(true));
 
 	ws_.set_option(beast::websocket::stream_base::decorator(
 		[](beast::websocket::request_type& req) {
@@ -108,9 +103,13 @@ void WebSocketHandler::on_read(const boost::system::error_code& ec, std::size_t 
 		}
 		return;
 	}
-
-	std::cout << beast::make_printable(buffer.data()) << std::endl;
+	std::string data_str = beast::buffers_to_string(buffer.data());
+	// std::cout << beast::make_printable(buffer.data()) << std::endl;
+	// std::cout << data_str << std::endl;
 	buffer.consume(buffer.size());
+
+	asio::post(io_context_,
+			   std::bind(&WebSocketHandler::on_data, this, data_str));
 
 	// Continue to read messages.
 	ws_.async_read(

@@ -39,18 +39,19 @@ void RestApiHandler::run() {
 	});
 }
 
-	void RestApiHandler::setEndpoint(const std::string& host,
-					 const std::string& port,
-					 const std::string& endpoint) {
-		this->host_ = host;
-		this->port_ = port;
-		this->endpoint_ = endpoint;
-
-		this->req_ = http::request<http::string_body>{http::verb::get, "/fapi/v1/depth?symbol=BTCUSDT&limit=5", 11};
-		this->req_.set(http::field::host, "fapi.binance.com");
-		this->req_.set(http::field::accept, "*/*");
-		this->req_.set(http::field::connection, "close");
-	}
+void RestApiHandler::setEndpoint(const std::string& host,
+								 const std::string& port,
+								 const std::string& endpoint) {
+	this->host_ = host;
+	this->port_ = port;
+	this->endpoint_ = endpoint;
+	std::cout << "SETTING ENDPOINT "<< endpoint << std::endl;
+	this->req_ = http::request<http::string_body>{http::verb::get, endpoint, 11};
+	// this->req_ = http::request<http::string_body>{http::verb::get, "/fapi/v1/depth?symbol=BTCUSDT&limit=5", 11};
+	this->req_.set(http::field::host, "fapi.binance.com");
+	this->req_.set(http::field::accept, "*/*");
+	this->req_.set(http::field::connection, "close");
+}
 
 void RestApiHandler::on_resolve(const boost::system::error_code& error,
 								tcp::resolver::results_type results,
@@ -90,7 +91,7 @@ void RestApiHandler::on_handshake(const boost::system::error_code& error,
 		// 							 on_write(error, this->socket_);
 		// 						 });
 
-		std::cout << "On handshake" << std::endl;
+		// std::cout << "On handshake" << std::endl;
 		http::async_write(*socket, std::forward<http::request<http::string_body>>(this->req_),
 						  [this](const boost::system::error_code& error, std::size_t) {
 							  on_write(error, this->socket_);
@@ -120,10 +121,14 @@ void RestApiHandler::on_read(const boost::system::error_code& error,
 							 std::shared_ptr<boost::asio::streambuf> response) {
 	if (!error || error == boost::asio::error::eof) {
 		std::istream response_stream(response.get());
+		std::string data_str;
 		std::string line;
 		while (std::getline(response_stream, line) && !line.empty()) {
-			std::cout << line << std::endl;
+			// std::cout << line << std::endl;
+			// data_str = data_str + '\n' + line;
+			data_str = line;
 		}
+		asio::post(io_context_, std::bind(&RestApiHandler::on_data, this, std::move(data_str)));
 	} else {
 		std::cerr << "Read error: " << error.message() << std::endl;
 	}
