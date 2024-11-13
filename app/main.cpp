@@ -16,10 +16,6 @@ class DemoClient : public Client {
 
 int main() {
 	Client::Config cfg = Client::Config::load_config("../config/setup.ini", "../config/subscription.ini");
-	std::cout << "replicas_restapi: " << cfg.setup.replicas_restapi << std::endl;
-	std::cout << "replicas_ws: " << cfg.setup.replicas_ws << std::endl;
-	std::cout << "host_restapi: " << cfg.setup.host_restapi << std::endl;
-	std::cout << "host_ws: " << cfg.setup.host_ws << std::endl;
 	DemoClient client("Demo", std::move(cfg));
 	client.setup();
 	client.run();

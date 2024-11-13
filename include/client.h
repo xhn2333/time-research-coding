@@ -29,7 +29,7 @@ class Client {
 			std::string channel;
 			std::string limit;
 			Subscription(const std::string& symbol, const std::string& channel, const std::string& limit)
-				: symbol(symbol), channel(channel) , limit(limit){}
+				: symbol(symbol), channel(channel), limit(limit) {}
 		};
 
 		std::vector<Subscription> subscriptions;

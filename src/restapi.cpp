@@ -45,7 +45,7 @@ void RestApiHandler::setEndpoint(const std::string& host,
 	this->host_ = host;
 	this->port_ = port;
 	this->endpoint_ = endpoint;
-	std::cout << "SETTING ENDPOINT "<< endpoint << std::endl;
+	// std::cout << "SETTING ENDPOINT "<< endpoint << std::endl;
 	this->req_ = http::request<http::string_body>{http::verb::get, endpoint, 11};
 	// this->req_ = http::request<http::string_body>{http::verb::get, "/fapi/v1/depth?symbol=BTCUSDT&limit=5", 11};
 	this->req_.set(http::field::host, "fapi.binance.com");
