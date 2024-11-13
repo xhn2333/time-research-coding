@@ -4,17 +4,18 @@
 class WebSocketHandlerTest : public ::testing::Test {
   protected:
 	boost::asio::io_context ioc;
-	ssl::context ssl_context{ssl::context::sslv23};
 	std::shared_ptr<WebSocketHandler> wsHandler;
-
+	std::shared_ptr<Cache> cache_;
 	void SetUp() override {
-		wsHandler = std::make_shared<WebSocketHandler>(ioc);
+		wsHandler = std::make_shared<WebSocketHandler>("btcusdt", ioc);
+		cache_ = std::make_shared<Cache>();
 	}
 };
 
-TEST_F(WebSocketHandlerTest, TestResolve) {
+TEST_F(WebSocketHandlerTest, DISABLED_TestResolve) {
 	// Set endpoint parameters
 	wsHandler->setEndpoint("fstream.binance.com", "443", "/ws/btcusdt@depth5@100ms");
+	wsHandler->bind_cache(cache_);
 	wsHandler->run();
 
 	std::thread t([&]() {

@@ -1,7 +1,9 @@
 # 获取源文件列表
 file(GLOB_RECURSE SOURCES "*.cpp")
 
-add_library(${TARGET_LIB} SHARED ${SOURCES})
+
+
+add_library(${TARGET_LIB} SHARED ${SOURCES} ${CMAKE_SOURCE_DIR}/third_party/inih/ini.c)
 
 set_target_properties(${TARGET_LIB} PROPERTIES
     VERSION 1.0.0
@@ -18,4 +20,5 @@ target_link_libraries(${TARGET_LIB} PRIVATE
 
 target_include_directories(${TARGET_LIB} PRIVATE 
 	${CMAKE_SOURCE_DIR}/include
+	${CMAKE_SOURCE_DIR}/third_party/inih
 )

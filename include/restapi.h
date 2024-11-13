@@ -4,7 +4,7 @@
 #include "connection.h"
 
 class RestApiHandler : public std::enable_shared_from_this<RestApiHandler>, public ConnectionHandler {
-   private:
+  private:
 	std::string host_;
 	std::string port_;
 	std::string endpoint_;
@@ -18,10 +18,10 @@ class RestApiHandler : public std::enable_shared_from_this<RestApiHandler>, publ
 
 	http::request<http::string_body> req_;
 	boost::asio::streambuf response_;
-  
+
   public:
-	RestApiHandler(asio::io_context& ioc)
-		: ConnectionHandler(ioc),
+	RestApiHandler(const std::string& symbol, asio::io_context& ioc)
+		: ConnectionHandler(symbol, ioc),
 		  timer_(ioc),
 		  resolver_(ioc),
 		  ssl_context_(boost::asio::ssl::context::sslv23) {
@@ -36,6 +36,14 @@ class RestApiHandler : public std::enable_shared_from_this<RestApiHandler>, publ
 
 	void setPollingInterval(std::chrono::seconds new_interval) {
 		polling_interval_.store(new_interval);
+	}
+
+	Msg parse(const std::string& data_str) override {
+		Msg msg = Msg::createMsg(Msg::Source::RestApi,
+								 Msg::Type::OrderBook,
+								 symbol_,
+								 data_str);
+		return msg;
 	}
 
 	void run() override;
@@ -54,8 +62,6 @@ class RestApiHandler : public std::enable_shared_from_this<RestApiHandler>, publ
 				 std::size_t bytes_transferred,
 				 std::shared_ptr<ssl::stream<tcp::socket>> socket,
 				 std::shared_ptr<boost::asio::streambuf> response);
-
- 
 };
 
 #endif	// RESTAPI_H

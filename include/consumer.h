@@ -12,13 +12,33 @@
  */
 class Consumer {
   public:
-	Consumer() = default;
+	asio::io_context& io_context_;
+
+  public:
+	Consumer(asio::io_context& ioc)
+		: io_context_(ioc) {
+		  };
 	~Consumer() = default;
+
+	void bind_cache(std::shared_ptr<Cache> buffer_queue) {
+		buffer_queue_ = buffer_queue;
+	}
+
+	void bind_callback_onOrderBook(const std::function<void(const OrderBook&)>& callback, bool is_ws) {
+		if (is_ws) {
+			callback_onOrderBookWS = callback;
+		} else {
+			callback_onOrderBookREST = callback;
+		}
+	}
 
 	void run();
 
   private:
-	asio::io_context io_context_;
+	void onData(const Msg& msg);
+	std::function<void(const OrderBook&)> callback_onOrderBookWS;
+	std::function<void(const OrderBook&)> callback_onOrderBookREST;
+
 	std::shared_ptr<Cache> buffer_queue_;
 };
 

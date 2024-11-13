@@ -1,6 +1,27 @@
-#include <iostream>
+#include "client.h"
+
+class DemoClient : public Client {
+  public:
+	DemoClient(const std::string& name, const Client::Config& cfg_)
+		: Client(name, cfg_) {};
+
+	void onOrderBookWS(const OrderBook& orderBook) override {
+		logger_->info("onOrderBookWS----[" + orderBook.symbol + "]  E: " + std::to_string(uint64_t(orderBook.data["E"])));
+	}
+
+	void onOrderBookREST(const OrderBook& orderBook) override {
+		logger_->info("onOrderBookREST--[" + orderBook.symbol + "]  E: " + std::to_string(uint64_t(orderBook.data["E"])));
+	}
+};
 
 int main() {
-	std::cout << "Hello, World!" << std::endl;
+	Client::Config cfg = Client::Config::load_config("../config/setup.ini", "../config/subscription.ini");
+	std::cout << "replicas_restapi: " << cfg.setup.replicas_restapi << std::endl;
+	std::cout << "replicas_ws: " << cfg.setup.replicas_ws << std::endl;
+	std::cout << "host_restapi: " << cfg.setup.host_restapi << std::endl;
+	std::cout << "host_ws: " << cfg.setup.host_ws << std::endl;
+	DemoClient client("Demo", std::move(cfg));
+	client.setup();
+	client.run();
 	return 0;
 }

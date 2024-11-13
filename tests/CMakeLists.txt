@@ -9,7 +9,7 @@ add_executable(${TARGET_TESTS} ${TEST_SOURCES})
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -fPIC -Issl -Wall -Wextra -O2")
 
 # 链接库和 gtest_main（使用默认 main）
-target_link_libraries(${TARGET_TESTS} PRIVATE
+target_link_libraries(${TARGET_TESTS} PUBLIC
     ${TARGET_LIB}
     gtest
     gtest_main
@@ -18,7 +18,7 @@ target_link_libraries(${TARGET_TESTS} PRIVATE
     jsoncpp
 )
 
-target_include_directories(${TARGET_TESTS} PRIVATE ${CMAKE_SOURCE_DIR}/include)
+target_include_directories(${TARGET_TESTS} PUBLIC ${CMAKE_SOURCE_DIR}/include)
 
 foreach(test_file ${TEST_SOURCES})
     get_filename_component(test_name ${test_file} NAME_WE)

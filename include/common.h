@@ -14,6 +14,8 @@
 #include <string>
 #include <thread>
 
+#include "utils/parser.h"
+
 namespace asio = boost::asio;
 namespace beast = boost::beast;
 
@@ -22,12 +24,26 @@ struct BaseData {
 };
 
 struct OrderBook : public BaseData {
-	std::string data;
-	
-	OrderBook(const std::string& data) : data(data) {}
+	// std::string data;
+	std::string symbol;
+	json data;
+
+	OrderBook() = default;
+	OrderBook(const std::string& symbol,
+			  const std::string& data)
+		: symbol(symbol),
+		  data(parseJsonString(data)) {}
 
 	int64_t hash() override {
-		return std::hash<std::string>{}(data);
+		try {
+			std::string hash_data = std::to_string(uint64_t(this->data["U"])) +
+									std::to_string(uint64_t(this->data["u"])) +
+									std::to_string(uint64_t(this->data["pu"]));
+
+			return std::hash<std::string>{}(hash_data);
+		} catch (...) {
+			return -1;
+		}
 	}
 };
 
@@ -41,12 +57,6 @@ struct Msg {
 		Position
 	};
 
-	enum class Status {
-		None,
-		Succeeded,
-		Failed
-	};
-
 	enum class Source {
 		None,
 		RestApi,
@@ -54,23 +64,24 @@ struct Msg {
 	};
 
 	Type type = Type::None;
-	Status status = Status::None;
 	Source source = Source::None;
 	std::shared_ptr<BaseData> data;
 
-	
-	static Msg createOrderBookMsg(const std::string& data) {
+	static Msg createMsg(Source source,
+						 Type type,
+						 const std::string& symbol,
+						 const std::string& data) {
 		Msg msg;
-		msg.type = Type::OrderBook;
-		msg.data = std::make_shared<OrderBook>(OrderBook{data});
+		msg.type = type;
+		msg.source = source;
+		if (type == Type::OrderBook)
+			msg.data = std::make_shared<OrderBook>(symbol, data);
 		return msg;
 	}
-
 
 	bool valid() {
 		bool flag = true;
 		flag &= type != Type::None;
-		flag &= status != Status::None;
 		flag &= source != Source::None;
 		flag &= data != nullptr;
 		return flag;

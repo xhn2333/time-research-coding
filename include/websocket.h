@@ -5,8 +5,9 @@
 
 class WebSocketHandler : public std::enable_shared_from_this<WebSocketHandler>, public ConnectionHandler {
   public:
-	WebSocketHandler(asio::io_context& ioc)
-		: ConnectionHandler(ioc),
+	WebSocketHandler(const std::string& symbol,
+					 asio::io_context& ioc)
+		: ConnectionHandler(symbol, ioc),
 		  timer_(ioc),
 		  resolver_(ioc),
 		  ssl_context_(ssl::context::sslv23),
@@ -18,6 +19,15 @@ class WebSocketHandler : public std::enable_shared_from_this<WebSocketHandler>, 
 	void setEndpoint(const std::string& host,
 					 const std::string& port,
 					 const std::string& endpoint) override;
+
+	Msg parse(const std::string& data_str) override {
+		Msg msg = Msg::createMsg(Msg::Source::WebSocket,
+								 Msg::Type::OrderBook,
+								 symbol_,
+								 data_str);
+		return msg;
+	}
+
 	void run() override;
 
 	void close();
